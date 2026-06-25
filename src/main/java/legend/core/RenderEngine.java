@@ -295,7 +295,8 @@ public class RenderEngine {
       final Shader<ShaderOptionsScreen>.UniformFloat bloomIntensity = shader.new UniformFloat("bloom_intensity");
       final Shader<ShaderOptionsScreen>.UniformFloat bloomThreshold = shader.new UniformFloat("bloom_threshold");
       final Shader<ShaderOptionsScreen>.UniformFloat bloomRadius = shader.new UniformFloat("bloom_radius");
-      return () -> new ShaderOptionsScreen(enableCrt, time, scanlinesOpacity, scanlinesWidth, grilleOpacity, resolution, pixelate, roll, rollSpeed, rollSize, rollVariation, distortIntensity, noiseOpacity, noiseSpeed, staticNoiseIntensity, aberration, brightness, discolour, warpAmount, vignetteIntensity, vignetteOpacity, bloomIntensity, bloomThreshold, bloomRadius);
+      final Shader<ShaderOptionsScreen>.UniformVec4 turnOrderBounds = shader.new UniformVec4("turn_order_bounds");
+      return () -> new ShaderOptionsScreen(enableCrt, time, scanlinesOpacity, scanlinesWidth, grilleOpacity, resolution, pixelate, roll, rollSpeed, rollSize, rollVariation, distortIntensity, noiseOpacity, noiseSpeed, staticNoiseIntensity, aberration, brightness, discolour, warpAmount, vignetteIntensity, vignetteOpacity, bloomIntensity, bloomThreshold, bloomRadius, turnOrderBounds);
     }
   );
 
@@ -819,6 +820,16 @@ public class RenderEngine {
           screenShaderOptions.bloomIntensity(CONFIG.getConfig(SHADER_BLOOM_INTENSITY_CONFIG.get()));
           screenShaderOptions.bloomThreshold(CONFIG.getConfig(SHADER_BLOOM_THRESHOLD_CONFIG.get()));
           screenShaderOptions.bloomRadius(CONFIG.getConfig(SHADER_BLOOM_RADIUS_CONFIG.get()));
+          if (legend.turnorder.TurnOrderMod.isVisible && currentEngineState_8004dd04 instanceof final legend.game.combat.Battle battle && !battle.isBattleDisabled() && CONFIG.getConfig(legend.turnorder.TurnOrderConfigs.SHOW_TURN_ORDER.get())) {
+            final float xOffset = this.getWidescreenOrthoOffsetX();
+            final float minX = 3.5f / (640.0f + 2.0f * xOffset);
+            final float maxX = (3.5f + legend.turnorder.TurnOrderMod.currentBoxWidth) / (640.0f + 2.0f * xOffset);
+            final float minY = 409.0f / 480.0f;
+            final float maxY = 476.0f / 480.0f;
+            screenShaderOptions.turnOrderBounds(minX, minY, maxX, maxY);
+          } else {
+            screenShaderOptions.turnOrderBounds(0.0f, 0.0f, 0.0f, 0.0f);
+          }
         }
 
         // draw final screen quad

@@ -43,9 +43,9 @@ uniform float vignette_opacity = 0.5;
 uniform float bloom_intensity = 0.0;
 uniform float bloom_threshold = 0.3;
 uniform float bloom_radius = 1.5;
+uniform vec4 turn_order_bounds = vec4(0.0);
 
-// Performs bilinear filtering on a texture
-// Helps smooth the interaction between chromatic aberration and pixelation
+// Performs bilinear filtering manually on a texture
 vec4 textureBilinear(sampler2D tex, vec2 uv) {
   vec2 size = vec2(textureSize(tex, 0));
   vec2 texel = uv * size - 0.5;
@@ -61,11 +61,26 @@ vec4 textureBilinear(sampler2D tex, vec2 uv) {
   return mix(mix(t00, t10, f.x), mix(t01, t11, f.x), f.y);
 }
 
+// The Turn Order UI is too small to be legible below 480P,
+// so cheat the pixelation for that section of the screen
+vec2 getActiveResolution(vec2 uv) {
+  vec2 res = resolution;
+  if(pixelate && res.y <= 480.0) {
+    if(uv.x >= turn_order_bounds.x && uv.x <= turn_order_bounds.z &&
+       uv.y >= turn_order_bounds.y && uv.y <= turn_order_bounds.w) {
+      float aspect = res.x / res.y;
+      res = vec2(480.0 * aspect * 1.5, 480.0);
+    }
+  }
+  return res;
+}
+
 // High-pass filter used to select bright pixels for Bloom effect
 vec3 sampleHighPass(sampler2D tex, vec2 uv, vec2 offset, float threshold) {
   vec2 sample_uv = uv + offset;
   if(pixelate) {
-    sample_uv = (floor(sample_uv * resolution) + 0.5) / resolution;
+    vec2 res = getActiveResolution(sample_uv);
+    sample_uv = (floor(sample_uv * res) + 0.5) / res;
   }
   vec3 color = textureBilinear(tex, sample_uv).rgb;
   return max(color - vec3(threshold), vec3(0.0));
@@ -131,9 +146,11 @@ void main() {
   vec2 roll_uv = vec2(0.0);
   float rollTime = roll ? time : 0.0;
 
+  vec2 active_res = getActiveResolution(uv);
+
   // Pixelate the texture based on the given resolution.
   if(pixelate) {
-    text_uv = (floor(uv * resolution) + 0.5) / resolution;
+    text_uv = (floor(uv * active_res) + 0.5) / active_res;
   }
 
   // Create the rolling effect. We need roll_line a bit later to make the noise effect.
