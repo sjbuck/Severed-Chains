@@ -6,6 +6,7 @@ import legend.core.opengl.SubmapWidescreenMode;
 import legend.game.EngineState;
 import legend.game.modding.coremod.CoreMod;
 import org.joml.Matrix4f;
+import org.joml.Vector3f;
 
 import java.nio.FloatBuffer;
 
@@ -223,7 +224,12 @@ public class RenderBatch {
     }
 
     this.needsSorting = true;
-    this.temp.identity().setTranslation(this.widescreenOrthoOffsetX, 0.0f, 0.0f);
+    final boolean snap = CONFIG.getConfig(CoreMod.SHADER_ENABLE_CRT_CONFIG.get()) && CONFIG.getConfig(CoreMod.SHADER_PIXELATE_CONFIG.get()) != legend.core.opengl.PixelateMode.NONE;
+    if (snap) {
+      this.temp.identity().setTranslation(Math.round(this.widescreenOrthoOffsetX), 0.0f, 0.0f);
+    } else {
+      this.temp.identity().setTranslation(this.widescreenOrthoOffsetX, 0.0f, 0.0f);
+    }
 
     final T entry = this.orthoPool.acquire(type);
     entry.acquire(obj, this.sequence++, this.temp);
@@ -236,7 +242,12 @@ public class RenderBatch {
     }
 
     this.needsSorting = true;
-    this.temp.set(mv).setTranslation(mv.transfer.x + this.widescreenOrthoOffsetX, mv.transfer.y, mv.transfer.z);
+    final boolean snap = CONFIG.getConfig(CoreMod.SHADER_ENABLE_CRT_CONFIG.get()) && CONFIG.getConfig(CoreMod.SHADER_PIXELATE_CONFIG.get()) != legend.core.opengl.PixelateMode.NONE;
+    if (snap) {
+      this.temp.set(mv).setTranslation(Math.round(mv.transfer.x + this.widescreenOrthoOffsetX), Math.round(mv.transfer.y), mv.transfer.z);
+    } else {
+      this.temp.set(mv).setTranslation(mv.transfer.x + this.widescreenOrthoOffsetX, mv.transfer.y, mv.transfer.z);
+    }
 
     final T entry = this.orthoPool.acquire(type);
     entry.acquire(obj, this.sequence++, this.temp);
@@ -251,7 +262,16 @@ public class RenderBatch {
 
     this.needsSorting = true;
     final T entry = this.orthoPool.acquire(type);
-    entry.acquire(obj, this.sequence++, transforms);
+    final boolean snap = CONFIG.getConfig(CoreMod.SHADER_ENABLE_CRT_CONFIG.get()) && CONFIG.getConfig(CoreMod.SHADER_PIXELATE_CONFIG.get()) != legend.core.opengl.PixelateMode.NONE;
+    if (snap) {
+      this.temp.set(transforms);
+      final Vector3f translation = new Vector3f();
+      transforms.getTranslation(translation);
+      this.temp.setTranslation(Math.round(translation.x), Math.round(translation.y), translation.z);
+      entry.acquire(obj, this.sequence++, this.temp);
+    } else {
+      entry.acquire(obj, this.sequence++, transforms);
+    }
     return entry;
   }
 }
